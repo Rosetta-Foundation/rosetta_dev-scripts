@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **team-setup:** require agents to open PRs/issues as Addi (`addi-github-identity` rule); never ambient human `gh` for agent PRs.
 - **team-setup:** prove Addi merge-on-approve GHA path (human Approve → `rosetta-s-addi-m[bot]` squash-merge).
 - **team-setup:** spike **Addi merge-on-approve** via GitHub Actions (preserves
   `rosetta-s-addi-m[bot]` identity). Cursor Automations cannot run as Addi —

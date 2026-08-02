@@ -48,7 +48,8 @@ describe('layDownRootConfig', () => {
           'code-style.md',
           'inline-docs.md',
           'sdlc-run-supervise.md',
-          'pr-approve-watch.md'
+          'pr-approve-watch.md',
+          'addi-github-identity.md'
         ];
       if (p.endsWith(`${path.sep}commands`))
         return ['review.md', 'add-repo.md', 'sdlc-status.md'];
@@ -91,6 +92,10 @@ describe('layDownRootConfig', () => {
     expect(mockWriteFileSync).toHaveBeenCalledWith(
       path.join('/base', '.cursor', 'rules', 'pr-approve-watch.mdc'),
       expect.stringContaining('Approve proceed signal')
+    );
+    expect(mockWriteFileSync).toHaveBeenCalledWith(
+      path.join('/base', '.cursor', 'rules', 'addi-github-identity.mdc'),
+      expect.stringContaining('Open commits/PRs/issues as Addi')
     );
     expect(mockWriteFileSync).toHaveBeenCalledWith(
       path.join('/base', '.cursor', 'rules', 'command-review.mdc'),

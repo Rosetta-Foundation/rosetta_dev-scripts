@@ -42,6 +42,10 @@ AI assistance. Git hooks and Conventional Commits apply regardless of agent.
 - **Do not commit on `main`** unless a human explicitly authorizes a documented exception
   (foundation bootstrap or emergency hotfix — see `CLAUDE.md`).
 - Conventional Commits are enforced by husky `commit-msg` in every Rosetta repo.
+- **Open PRs / push topic branches as Addi** — activate
+  `~/.config/rosetta/github-app-activate.sh` (or Comita’s) before
+  `git push` + `gh pr create`. Never open agent PRs as the human operator
+  (see `.claude/rules/addi-github-identity.md`).
 - **No “Made with Cursor” (or similar) in commits or PR descriptions** — see
   `.claude/rules/no-tool-attribution.md` / `.cursor/rules/no-tool-attribution.mdc`.
 - **Watched issues drive to resolution** — see `issue-resolve-watch`

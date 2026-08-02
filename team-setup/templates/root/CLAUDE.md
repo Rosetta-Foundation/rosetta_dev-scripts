@@ -173,9 +173,12 @@ See each repo's `CONTRIBUTING.md`. There is no CLA.
 
 ### Finishing work
 
-When work is complete, push the branch and open a PR:
+When work is complete, push the branch and open a PR **as Addi** (GitHub App) —
+never with the human’s ambient `gh` login (humans cannot Approve their own PRs;
+see rule `addi-github-identity`):
 
 ```bash
+eval "$(bash ~/.config/rosetta/github-app-activate.sh)"   # or ~/.config/comita/...
 git push -u origin HEAD
 gh pr create --fill
 ```
