@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **team-setup:** add `issue-resolve-watch` skill — background-watch GitHub
+  issues (kickoff / human comments / linked PRs / closed) and wake the agent
+  to drive Done-when → close; `/watch-issue-resolve` + always-on rule.
 - **team-setup:** add `pr-approve-watch` skill/rule/command — background-watch
   PRs for a human GitHub Approve proceed signal (`AGENT_LOOP_WAKE_pr_approve`),
   then merge and continue. Works for Rosetta (`~/.config/rosetta/…`) and Comita

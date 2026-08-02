@@ -42,3 +42,6 @@ AI assistance. Git hooks and Conventional Commits apply regardless of agent.
 - **Do not commit on `main`** unless a human explicitly authorizes a documented exception
   (foundation bootstrap or emergency hotfix — see `CLAUDE.md`).
 - Conventional Commits are enforced by husky `commit-msg` in every Rosetta repo.
+- **Watched issues drive to resolution** — see `issue-resolve-watch`
+  (`/watch-issue-resolve`); arm after taking ownership (recreate as Addi when
+  asked).
