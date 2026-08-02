@@ -27,11 +27,12 @@ the unreliable `notify_on_output` wake for merge execution.
 
 ## Secrets / vars (repo or org)
 
-| Name                    | Kind     | Purpose                                                 |
-| ----------------------- | -------- | ------------------------------------------------------- |
-| `ADDI_APP_ID`           | variable | Numeric GitHub App id (e.g. `4464370`) — `app-id` input |
-| `ADDI_APP_PRIVATE_KEY`  | secret   | PEM private key for App `addi-m`                        |
-| `ADDI_MERGE_ON_APPROVE` | variable | Set to `true` to enable the job                         |
+| Name                    | Kind     | Purpose                                                             |
+| ----------------------- | -------- | ------------------------------------------------------------------- |
+| `ADDI_CLIENT_ID`        | variable | GitHub App **Client ID** (e.g. `Iv23…`) — `client-id` input         |
+| `ADDI_APP_PRIVATE_KEY`  | secret   | PEM private key for App `addi-m`                                    |
+| `ADDI_MERGE_ON_APPROVE` | variable | Set to `true` to enable the job                                     |
+| `ADDI_APP_ID`           | variable | Legacy numeric App ID — unused by the workflow after client-id move |
 
 App needs installation permissions on the repo: **contents** (write),
 **pull requests** (write), **checks** (read), **workflows** (if merging
@@ -89,7 +90,7 @@ cron further.
 
 ## Operator checklist
 
-1. Add `ADDI_APP_ID` + `ADDI_APP_PRIVATE_KEY` to the repo (or org) secrets/vars.
+1. Add `ADDI_CLIENT_ID` + `ADDI_APP_PRIVATE_KEY` to the repo (or org) vars/secrets.
 2. Confirm App installation includes this repository.
 3. Set `ADDI_MERGE_ON_APPROVE=true`.
 4. Open an Addi PR, Approve as a human, confirm merge author is
