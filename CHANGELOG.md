@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **team-setup:** deploy dual-tenant `addi-merge-webhook` to AWS Lambda Function
+  URL (`comita-dev`); Comita + Rosetta org webhooks deliver
+  `pull_request_review` → `repository_dispatch` (`addi-merge-on-approve`).
 - **team-setup:** `pr-approve-watch` also wakes on human **Request changes**
   (`signal: changes_requested` in the wake JSON) — once per new non-bot review
   id — so feedback can stay on the PR; agent fixes without merging and keeps
