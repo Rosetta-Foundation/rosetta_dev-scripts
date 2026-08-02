@@ -3,6 +3,10 @@
 ## Unreleased
 
 - **team-setup:** `pr-approve-watch` wake path must resolve `mergeable=CONFLICTING` PRs (rebase/merge onto base, push, re-check CI) before comment triage + merge — do not stop after Approve on a dirty tip.
+- **team-setup:** ban Cursor/tool marketing footers in commits and PR bodies
+  (`no-tool-attribution` rule + `attribution.attributePRsToAgent: false` in
+  workspace `.cursor/cli.json`); agents must strip injected "Made with Cursor"
+  via `gh pr edit` if the client still appends it.
 - **team-setup:** add `pr-approve-watch` skill/rule/command — background-watch
   PRs for a human GitHub Approve proceed signal (`AGENT_LOOP_WAKE_pr_approve`),
   then merge and continue. Works for Rosetta (`~/.config/rosetta/…`) and Comita
