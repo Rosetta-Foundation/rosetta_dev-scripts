@@ -69,6 +69,13 @@ that terminates the YAML block scalar early. Keep multiline comment text in
 an `env:` literal (as the workflow does for `CONFLICT_BODY`), or indent every
 heredoc line to the block’s content indent.
 
+**C — Job hangs on "Waiting for checks"**
+
+`pull_request_review` registers this workflow as a pending PR check named
+`merge`. Using `gh pr checks --watch` waits for that check — a self-deadlock.
+The workflow polls `statusCheckRollup` and **excludes** workflow name
+`Addi merge on Approve` / the current `GITHUB_RUN_ID`.
+
 **B — `pull_request_review` delivers no runs**
 
 Observed on `rosetta_dev-scripts` (2026-08-02): human Approve on Addi PRs

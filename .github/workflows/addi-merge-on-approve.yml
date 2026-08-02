@@ -177,12 +177,48 @@ jobs:
               return 0
             fi
 
-            echo "Waiting for checks…"
-            if ! gh pr checks "$PR" -R "$REPO" --watch --fail-fast; then
-              echo "Checks failed; not merging $url"
-              echo "::endgroup::"
-              return 1
-            fi
+            # Do NOT use `gh pr checks --watch` — on pull_request_review this
+            # job is itself a pending check, so --watch deadlocks on self.
+            echo "Waiting for checks (excluding this workflow)…"
+            local deadline=$((SECONDS + 1200))
+            local self_run="${GITHUB_RUN_ID:-}"
+            while true; do
+              local rollup
+              rollup=$(gh pr view "$PR" -R "$REPO" --json statusCheckRollup)
+              local pending failed
+              pending=$(echo "$rollup" | jq --argjson run "${self_run:-0}" '
+                [.statusCheckRollup[]?
+                  | select((.workflowName // "") != "Addi merge on Approve")
+                  | select((.detailsUrl // "") | contains("/runs/\($run)/") | not)
+                  | select(.status != "COMPLETED")]
+                | length')
+              failed=$(echo "$rollup" | jq --argjson run "${self_run:-0}" '
+                [.statusCheckRollup[]?
+                  | select((.workflowName // "") != "Addi merge on Approve")
+                  | select((.detailsUrl // "") | contains("/runs/\($run)/") | not)
+                  | select(.status == "COMPLETED")
+                  | select(.conclusion != "SUCCESS"
+                      and .conclusion != "SKIPPED"
+                      and .conclusion != "NEUTRAL")]
+                | length')
+              if [ "$failed" -gt 0 ]; then
+                echo "Checks failed; not merging $url"
+                echo "$rollup" | jq .
+                echo "::endgroup::"
+                return 1
+              fi
+              if [ "$pending" -eq 0 ]; then
+                echo "Non-self checks complete."
+                break
+              fi
+              if [ "$SECONDS" -ge "$deadline" ]; then
+                echo "Timed out waiting for checks; not merging $url"
+                echo "::endgroup::"
+                return 1
+              fi
+              echo "pending=$pending — sleep 15s"
+              sleep 15
+            done
 
             mergeable=$(gh pr view "$PR" -R "$REPO" --json mergeable --jq '.mergeable // empty')
             if [ "$mergeable" != "MERGEABLE" ]; then
