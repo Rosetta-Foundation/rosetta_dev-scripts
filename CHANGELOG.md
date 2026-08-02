@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **team-setup:** prove Addi merge-on-approve CONFLICT path v2 (Approve → Addi conflict comment, no force-merge).
 - **team-setup:** prove Addi merge-on-approve GHA path (human Approve → `rosetta-s-addi-m[bot]` squash-merge).
 - **team-setup:** spike **Addi merge-on-approve** via GitHub Actions (preserves
   `rosetta-s-addi-m[bot]` identity). Cursor Automations cannot run as Addi —
