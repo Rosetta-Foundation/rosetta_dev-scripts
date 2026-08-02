@@ -57,6 +57,16 @@ workflow file changes — usually already covered by contents).
   should stay on the local watch path or set merge method later.
 - Conflict comments are idempotent (marker `## Addi merge-on-approve`).
 
+### What the workflow does _not_ do (yet)
+
+| Situation                                           | Behavior today                                                                                                                                                                                                                                            |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CI / status checks fail** while PR is `APPROVED`  | Does **not** merge. `gh pr checks --watch --fail-fast` fails the job. The 5-minute schedule keeps retrying; once checks are green and the PR is still `APPROVED` + `MERGEABLE`, the next successful run merges. No dedicated “checks failed” comment yet. |
+| **Request changes** (`reviewDecision` ≠ `APPROVED`) | No merge and no comment. Schedule only selects `APPROVED` PRs; `pull_request_review` only acts when `review.state == approved`. After you fix and **re-Approve**, the normal merge/conflict path runs again.                                              |
+| **Copilot / review-thread triage**                  | Still agent / local `pr-approve-watch` work — not in this GHA spike.                                                                                                                                                                                      |
+
+So the repeatable cycle is: Approve → (optional red checks → fix → still Approved) → merge; or Request changes → fix → re-Approve → merge/conflict comment. Request changes alone does not wake Addi.
+
 ### Troubleshooting: workflow never runs on Approve
 
 **A — Invalid YAML (startup failure)**
