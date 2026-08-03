@@ -5,6 +5,13 @@
 - **team-setup:** deploy dual-tenant `addi-merge-webhook` to AWS Lambda Function
   URL (`comita-dev`); Comita + Rosetta org webhooks deliver
   `pull_request_review` → `repository_dispatch` (`addi-merge-on-approve`).
+- **team-setup:** remove `attribution` from project `.cursor/cli.json` — Cursor
+  only allows `permissions` at project scope; `attribution` belongs in
+  `~/.cursor/cli-config.json` and was failing Agent CLI schema validation.
+- **team-setup:** `update-config` now targets the workspace enclosing the cwd
+  before falling back to `shared.baseDir`. Every checkout ships the same
+  hard-coded `baseDir`, so running it from a second workspace silently rewrote
+  the first — the two workspaces drifted while both appeared synced.
 - **team-setup:** `pr-approve-watch` also wakes on human **Request changes**
   (`signal: changes_requested` in the wake JSON) — once per new non-bot review
   id — so feedback can stay on the PR; agent fixes without merging and keeps
@@ -44,8 +51,8 @@
   issues (kickoff / human comments / linked PRs / closed) and wake the agent
   to drive Done-when → close; `/watch-issue-resolve` + always-on rule.
 - **team-setup:** ban Cursor/tool marketing footers in commits and PR bodies
-  (`no-tool-attribution` rule + `attribution.attributePRsToAgent: false` in
-  workspace `.cursor/cli.json`); agents must strip injected "Made with Cursor"
+  (`no-tool-attribution` rule + `attribution` opt-out in global
+  `cli-config.json`); agents must strip injected "Made with Cursor"
   via `gh pr edit` if the client still appends it.
 - **team-setup:** add `pr-approve-watch` skill/rule/command — background-watch
   PRs for a human GitHub Approve proceed signal (`AGENT_LOOP_WAKE_pr_approve`),
