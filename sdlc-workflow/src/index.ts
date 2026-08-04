@@ -267,9 +267,6 @@ container
 container
   .bind<ISuperviseExitRepository>(WORKFLOW_TOKENS.SuperviseExitRepository)
   .to(SuperviseExitRepository);
-container
-  .bind<IWakeInboxRepository>(WORKFLOW_TOKENS.WakeInboxRepository)
-  .to(WakeInboxRepository);
 container.bind<IRunHandler>(WORKFLOW_TOKENS.RunHandler).to(RunHandler);
 container
   .bind<ISuperviseService>(WORKFLOW_TOKENS.SuperviseService)
