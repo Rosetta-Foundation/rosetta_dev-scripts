@@ -130,6 +130,14 @@ import {
   IProcessDetachRepository
 } from './repositories/process-detach.repository';
 import {
+  IssueRepository,
+  IIssueRepository
+} from './repositories/issue.repository';
+import {
+  WakeInboxRepository,
+  IWakeInboxRepository
+} from './repositories/wake-inbox.repository';
+import {
   SuperviseService,
   ISuperviseService
 } from './services/supervise.service';
@@ -230,6 +238,12 @@ container
 container
   .bind<IPullRequestRepository>(WORKFLOW_TOKENS.PullRequestRepository)
   .to(PullRequestRepository);
+container
+  .bind<IIssueRepository>(WORKFLOW_TOKENS.IssueRepository)
+  .to(IssueRepository);
+container
+  .bind<IWakeInboxRepository>(WORKFLOW_TOKENS.WakeInboxRepository)
+  .to(WakeInboxRepository);
 container
   .bind<IPrLifecycleService>(WORKFLOW_TOKENS.PrLifecycleService)
   .to(PrLifecycleService);
@@ -418,6 +432,11 @@ yargs(hideBin(process.argv))
           type: 'string',
           describe:
             'Supervise: path for the live heartbeat monitor log (default: <runsDir>/<runId>/monitor.log)'
+        })
+        .option('operator', {
+          type: 'string',
+          describe:
+            'GitHub login assigned on needs-human escalation issues (also SDLC_OPERATOR env)'
         }),
     async argv => {
       const supervise = container.get<ISuperviseService>(
@@ -428,6 +447,18 @@ yargs(hideBin(process.argv))
         `${path
           .basename(argv.spec)
           .replace(/\.md$/, '')}-${new Date().toISOString().slice(0, 10)}`;
+      const operatorFlag =
+        typeof argv.operator === 'string' ? argv.operator.trim() : '';
+      const operatorEnv =
+        typeof process.env.SDLC_OPERATOR === 'string'
+          ? process.env.SDLC_OPERATOR.trim()
+          : '';
+      const operator =
+        operatorFlag.length > 0
+          ? operatorFlag
+          : operatorEnv.length > 0
+            ? operatorEnv
+            : undefined;
       try {
         const result = await supervise.run({
           specPath: argv.spec,
@@ -441,7 +472,8 @@ yargs(hideBin(process.argv))
           supervise: argv.supervise === true || argv.detach === true,
           detach: argv.detach === true,
           maxWaves: argv['max-waves'],
-          monitorPath: argv.monitor
+          monitorPath: argv.monitor,
+          operator
         });
         if (result.kind === 'detached') {
           process.exit(0);

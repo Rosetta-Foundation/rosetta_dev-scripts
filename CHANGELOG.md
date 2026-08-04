@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **sdlc-workflow:** needs-human escalations are assigned and delivered, not
+  parked. `run --operator <login>` (or `SDLC_OPERATOR`) assigns the GitHub
+  issue created for each exception entry; without an operator the issue still
+  posts and `monitor.log` warns. Every escalation also emits one durable
+  wake-inbox event (title-idempotent across resume) alongside the existing
+  queue item. Swallowed `gh issue create` failures append a loud
+  `monitor.log` warning while the run continues
+  (SPEC-BUG-fail-loud-run-lifecycle-P1 T-04).
+
 - **team-setup / Addi merge-on-approve:** after merging a PR that touches
   `specs/**/phase-*-spec.md`, emit `repository_dispatch` type
   `sdlc-run-launch` with `client_payload: { specPaths, mergedSha, prNumber }`
@@ -78,7 +87,7 @@
   default to targeting a forked repo's upstream parent, not `origin` — on
   `Comita-Health/rosetta_dev-scripts` (forked from
   `Rosetta-Foundation/rosetta_dev-scripts`) this produced `GraphQL: Resource
-  not accessible by integration (createPullRequest)`, indistinguishable
+not accessible by integration (createPullRequest)`, indistinguishable
   from Addi genuinely lacking `pull_requests: write`, which it does not.
   Confirmed live: REST `POST /pulls` and a raw GraphQL `createPullRequest`
   both pass the permission check on the same token; only `gh pr create`'s
@@ -103,7 +112,7 @@
   even slightly from that microformat produced no error, just a PRD that
   quietly decomposed into worse (or, for empty goals, eventually-erroring)
   output with no indication why. Sweeping this against every real PRD in
-  `rosetta_docs/product/` surfaced that even the *authoritative*
+  `rosetta_docs/product/` surfaced that even the _authoritative_
   `TEMPLATE.md` and the engine's own founding `PRD-0011` don't match the old
   strict Rollout regex (template puts the title outside the bold span;
   PRD-0011 prefixes phases with a status emoji) — proof the old contract was
@@ -116,7 +125,7 @@
   descriptions (a separate, previously-silent bug: the old lazy-match
   lookahead terminated at the end of a phase's first line, truncating or
   dropping any phase whose description wrapped). Added `sdlc-workflow
-  prd-lint --prd <id> --docs-dir <dir>` — validates a PRD parses cleanly with
+prd-lint --prd <id> --docs-dir <dir>` — validates a PRD parses cleanly with
   no LLM call and no `--repo`, for fast feedback right after drafting, before
   `decompose` ever runs.
 - **sdlc-workflow:** sandbox deploy and test-tier verification now run
@@ -172,9 +181,9 @@
 - **team-setup:** gold-standard **Addi PR automation** —
   `docs/addi-pr-automation-standard.md` + hardened
   `addi-merge-on-approve.yml` (repository_dispatch / workflow_run / schedule)
-  + `addi-merge-webhook` bridge; `pr-approve-watch` demoted to triage when GHA
-  is enabled. Comita and Rosetta each use their own Addi App Client ID + PEM
-  under the same Action variable names.
+  - `addi-merge-webhook` bridge; `pr-approve-watch` demoted to triage when GHA
+    is enabled. Comita and Rosetta each use their own Addi App Client ID + PEM
+    under the same Action variable names.
 - **team-setup:** add `addi-authorship` rule — agent PRs/issues must be created
   as the workspace GitHub App (Addi); verify `viewer.login` before create; never
   fall back to human `gh` on 403; recreate accidental human-authored PRs as Addi.
