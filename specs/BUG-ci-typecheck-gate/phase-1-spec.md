@@ -2,7 +2,7 @@
 id: SPEC-BUG-ci-typecheck-gate-P1
 prd: BUG-ci-typecheck-gate # synthetic id — lightweight bug path, no PRD file
 phase: 1
-status: Draft # Draft | Approved | Done | Superseded
+status: Approved # Draft | Approved | Done | Superseded
 date: 2026-08-04
 owner: Russ Watson
 envelope:
