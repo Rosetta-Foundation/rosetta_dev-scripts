@@ -2,7 +2,7 @@
 id: SPEC-BUG-decompose-grounding-P1
 prd: BUG-decompose-grounding # synthetic id, not a real PRD file — free-text label only (see PRD-0011 §7 Phase 1 vs. this lightweight path)
 phase: 1
-status: Draft # Draft | Approved | Done | Superseded
+status: Approved # Draft | Approved | Done | Superseded
 date: 2026-08-04
 owner: Russ Watson
 envelope:
