@@ -85,7 +85,7 @@ byte-identically.
 After merge-on-approve merges a PR that contains spec files, emit
 `repository_dispatch` type `sdlc-run-launch` with
 `client_payload: { specPaths: string[], mergedSha: string, prNumber: number }`.
-Consumers: the PRD-0018 event daemon (watch kind `workflow-run` /
+Consumers: the PRD-0020 event daemon (watch kind `workflow-run` /
 `issue-state`) launches `sdlc-workflow run` for the approved spec; until the
 daemon ships, the launch record is also visible to operators via
 `gh api /repos/{owner}/{repo}/dispatches` consumers and documented for the
@@ -106,7 +106,7 @@ merged spec PR (dedup by merge SHA).
 ## Out of scope
 
 - The daemon-side consumer that turns `sdlc-run-launch` into a running
-  `sdlc-workflow run` (PRD-0018 Phase 1/3).
+  `sdlc-workflow run` (PRD-0020 Phase 1/3).
 - Changing enforce intake's `status: Approved` requirement (correct as-is).
 - Distributing the workflow change to consumer orgs' repos (team-setup sync
   is the existing mechanism; Comita adoption is a consumer-side act).
