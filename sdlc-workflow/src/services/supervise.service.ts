@@ -1,4 +1,11 @@
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync
+} from 'fs';
 import { inject, injectable } from 'inversify';
 import path from 'path';
 import chalk from 'chalk';
@@ -6,6 +13,11 @@ import type { IGitRepository } from '../repositories/git.repository';
 import type { IProcessDetachRepository } from '../repositories/process-detach.repository';
 import type { IRunStateRepository } from '../repositories/run-state.repository';
 import type { ISpecDocRepository } from '../repositories/spec-doc.repository';
+import type {
+  ISuperviseExitRepository,
+  SuperviseExitRecord
+} from '../repositories/supervise-exit.repository';
+import type { IWakeInboxRepository } from '../repositories/wake-inbox.repository';
 import type { SpecDocument } from '../types';
 import type {
   IRunHandler,
@@ -19,6 +31,12 @@ import {
   hasUnmergedCompletedTasks
 } from '../utils/run-completion';
 import { buildSuperviseChildArgv } from '../utils/supervise-argv';
+import {
+  exitRecordFromError,
+  exitRecordFromResult,
+  formatExitMonitorLine,
+  installSuperviseTerminalHandlers
+} from '../utils/supervise-terminal';
 import type { IHeartbeatWatchService } from './heartbeat-watch.service';
 
 /**
@@ -65,6 +83,11 @@ export interface SuperviseInput extends RunTaskInput {
    * synthetic `run …` argv; production leaves this unset.
    */
   detachArgv?: string[];
+  /**
+   * Override wake-inbox root for tests (`…/wake`). Production leaves unset
+   * so wakes land in `$ROSETTA_WAKE_DIR` / `~/.rosetta/wake`.
+   */
+  wakeDir?: string;
 }
 
 export interface SuperviseResult {
@@ -100,7 +123,11 @@ export class SuperviseService implements ISuperviseService {
     @inject(WORKFLOW_TOKENS.HeartbeatWatchService)
     private readonly _hbWatch: IHeartbeatWatchService,
     @inject(WORKFLOW_TOKENS.GitRepository)
-    private readonly _gitRepo: IGitRepository
+    private readonly _gitRepo: IGitRepository,
+    @inject(WORKFLOW_TOKENS.SuperviseExitRepository)
+    private readonly _exitRepo: ISuperviseExitRepository,
+    @inject(WORKFLOW_TOKENS.WakeInboxRepository)
+    private readonly _wakeRepo: IWakeInboxRepository
   ) {}
 
   async run(input: SuperviseInput): Promise<SuperviseResult> {
@@ -200,8 +227,45 @@ export class SuperviseService implements ISuperviseService {
       pollMs: 1000
     });
 
+    // #38 / fail-loud T-02: any trappable termination writes supervise.exit,
+    // a terminal monitor.log line, and a durable wake. Idempotent so signal
+    // handlers and the intentional finish path cannot double-emit.
+    let recorded = false;
+    const recordTerminal = (record: SuperviseExitRecord): void => {
+      if (recorded) {
+        return;
+      }
+      recorded = true;
+      this._exitRepo.write(runDir, record);
+      this._hbWatch.note(monitorPath, formatExitMonitorLine(record));
+      this._wakeRepo.emit({
+        kind: 'sdlc_supervisor',
+        dedupeKey: `${input.runId}-exit`,
+        prompt: `SDLC supervise run ${input.runId} exited (code ${record.code}, reason ${record.reason}, abnormal=${record.abnormal}). Inspect ${runDir}/supervise.exit and ${monitorPath}.`,
+        data: {
+          runId: input.runId,
+          code: record.code,
+          reason: record.reason,
+          abnormal: record.abnormal
+        },
+        wakeDir: input.wakeDir
+      });
+    };
+
+    const handlers = installSuperviseTerminalHandlers(recordTerminal);
+
     let waves = 0;
     let lastWave: RunTaskResult | undefined;
+
+    // Only an *intentional* terminal outcome clears our pid file. A crash —
+    // thrown error, SIGKILL, OOM — must leave supervise.pid in place: a dead
+    // pid behind a live file is exactly the continuity daemon's relaunch cue
+    // (#37). Clearing in `finally` would erase that cue on every throw.
+    const finish = (result: SuperviseResult): SuperviseResult => {
+      recordTerminal(exitRecordFromResult(result));
+      this.clearOwnSupervisePid(runDir);
+      return result;
+    };
 
     try {
       while (waves < maxWaves) {
@@ -223,13 +287,13 @@ export class SuperviseService implements ISuperviseService {
             `[supervise] ALL TASKS MERGED after wave ${waves}`
           );
           console.log(chalk.green('\n[supervise] all tasks merged — done'));
-          return {
+          return finish({
             kind: 'completed',
             waves,
             lastWave,
             monitorPath,
             detail: 'all-tasks-merged'
-          };
+          });
         }
 
         const anyFailed = lastWave.tasks.some(t => t.kind === 'failed');
@@ -238,13 +302,13 @@ export class SuperviseService implements ISuperviseService {
             monitorPath,
             `[supervise] stopped wave ${waves}: ${lastWave.outcome} failed=${anyFailed}`
           );
-          return {
+          return finish({
             kind: 'failed',
             waves,
             lastWave,
             monitorPath,
             detail: anyFailed ? 'task-failed' : 'blocked'
-          };
+          });
         }
 
         // Enforce: completed-but-unmerged after a red phase is a hard stop —
@@ -265,13 +329,13 @@ export class SuperviseService implements ISuperviseService {
               '\n[supervise] merge blocked — fix red gates or PR conflicts, then resume'
             )
           );
-          return {
+          return finish({
             kind: 'failed',
             waves,
             lastWave,
             monitorPath,
             detail: 'merge-blocked'
-          };
+          });
         }
 
         // Shadow mode: merges are human — stop after the wave for review.
@@ -285,13 +349,13 @@ export class SuperviseService implements ISuperviseService {
               '\n[supervise] shadow human gate — merge task PRs, record-merge, re-run with --supervise'
             )
           );
-          return {
+          return finish({
             kind: 'stopped',
             waves,
             lastWave,
             monitorPath,
             detail: 'shadow-human-gate'
-          };
+          });
         }
 
         if (lastWave.outcome === 'no-ready-task') {
@@ -299,13 +363,13 @@ export class SuperviseService implements ISuperviseService {
             monitorPath,
             `[supervise] no ready task and not all merged after wave ${waves}`
           );
-          return {
+          return finish({
             kind: 'stopped',
             waves,
             lastWave,
             monitorPath,
             detail: 'no-ready-task'
-          };
+          });
         }
 
         // Enforce wave merged something (or cached) — continue for dependents.
@@ -315,19 +379,48 @@ export class SuperviseService implements ISuperviseService {
         );
       }
 
-      return {
+      return finish({
         kind: 'failed',
         waves,
         lastWave,
         monitorPath,
         detail: `max-waves-${maxWaves}`
-      };
+      });
+    } catch (err) {
+      // Thrown mid-loop: leave supervise.pid for the continuity daemon, but
+      // never exit silently — write the terminal record + wake before rethrow.
+      recordTerminal(exitRecordFromError(err));
+      throw err;
     } finally {
       this._hbWatch.note(
         monitorPath,
         `[hb-watch] stopped ${new Date().toISOString()}`
       );
       this._hbWatch.stop();
+      handlers.disarm();
+    }
+  }
+
+  /**
+   * Remove supervise.pid when — and only when — it records this process.
+   *
+   * Called exclusively from the loop's `finish()` on intentional terminal
+   * outcomes (completed / blocked / merge-blocked / shadow gate /
+   * no-ready-task / max-waves) so the continuity daemon does not relaunch a
+   * finished invocation. Crashes never reach this: a thrown error, SIGKILL,
+   * or OOM leaves the pid file behind, which is the daemon's relaunch cue.
+   */
+  private clearOwnSupervisePid(runDir: string): void {
+    const pidPath = path.join(runDir, 'supervise.pid');
+    try {
+      if (!existsSync(pidPath)) return;
+      const recorded = readFileSync(pidPath, 'utf-8').trim();
+      if (recorded === String(process.pid)) {
+        unlinkSync(pidPath);
+      }
+    } catch {
+      // Best-effort — a stale pid is worse than a missing one only when the
+      // daemon would relaunch a terminal refusal; ignore FS races.
     }
   }
 

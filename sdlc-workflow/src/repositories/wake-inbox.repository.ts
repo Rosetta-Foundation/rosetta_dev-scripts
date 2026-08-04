@@ -7,8 +7,9 @@ import path from 'path';
  * Durable agent wake inbox — TypeScript mirror of `scripts/wake-inbox.sh`.
  *
  * Writes `$ROSETTA_WAKE_DIR/pending/<slug>.json` (default
- * `~/.rosetta/wake/pending`) so an escalation (or supervise exit) survives a
- * dead terminal and is drained by the Cursor stop hook.
+ * `~/.rosetta/wake/pending`) so an escalation (fail-loud T-04) or supervise
+ * exit (#38 / fail-loud T-02) survives a dead terminal and is drained by the
+ * Cursor stop hook.
  */
 export interface WakeEmitInput {
   kind: string;

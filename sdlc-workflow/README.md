@@ -91,7 +91,10 @@ bun run dev -- status --run-id <run-id>
 `decompose` hard-stops after writing the Draft spec. Approval is a
 `status: Draft → Approved` flip in a dedicated commit (ADR-0008) —
 `run` refuses anything but an Approved spec, records the refusal as a
-blocked verdict, and executes at most one task per invocation. The envelope
+blocked verdict in `state.json`, and exits non-zero. A launch record
+(`state.json` with run id, spec digest, base SHA, argv, `startedAt`, empty
+steps) is written at invocation start — before intake — so a crash never
+leaves `status` answering `RUN_NOT_FOUND` (#37). The envelope
 gate evaluates the task branch diff against the spec's blast-radius envelope
 (forbidden-surface labels resolve via `<repo>/.sdlc/surfaces.json`). Since
 P3 T-04 the gates enforce by default: green across the board merges the
@@ -119,6 +122,30 @@ path unblocks multi-task runs. CI still validates the PR.
 the same records to `<runsDir>/<runId>/heartbeat.jsonl`. Pass `--heartbeat 0`
 to disable. Prefer OS `nohup` for long detached runs (see #38 / #43 F2) —
 do not rely on IDE harness backgrounding.
+
+### Detached / supervise exit detection (#38)
+
+A `--supervise` (or detached supervise child) process installs exit traps so
+**trappable** terminations — clean return, thrown error, `SIGTERM` /
+`SIGINT` — always write:
+
+| Artifact                           | Role                                                    |
+| ---------------------------------- | ------------------------------------------------------- |
+| `<runsDir>/<runId>/supervise.exit` | JSON `{ code, reason, abnormal, at }`                   |
+| `monitor.log` terminal line        | `[supervise] exit code=… reason=… abnormal=…`           |
+| Durable wake                       | `sdlc_supervisor` event under `~/.rosetta/wake/pending` |
+
+`abnormal: false` is reserved for legitimate all-tasks-merged completion
+(`code: 0`). A zero exit that left work incomplete (`stopped`, e.g.
+`no-ready-task` / shadow human gate) is still `abnormal: true` so the
+artifacts alone distinguish quiet incompleteness from success.
+
+**Detection boundary:** exit traps own every termination Node can handle.
+`SIGKILL`, OOM-kill, and power-loss cannot run a handler by definition —
+those remain the continuity layer's job (`supervise.pid` liveness +
+heartbeat staleness in `sdlc-continuity-daemon.sh`). Startup-window death
+(child dies before the first wave) is still caught by the detach parent's
+post-spawn grace probe (PR #83/#84).
 
 ## Repo-owned `.sdlc/` contracts
 
@@ -221,7 +248,8 @@ Handler / Service / Repository with InversifyJS (workspace rule):
   ADR-0008 Markdown.
 - `services/executor.service.ts` — approved-spec intake and the P3 T-01
   task pool: merged-dependency eligibility, bounded parallel agent
-  fan-out, one worktree per task.
+  fan-out, one worktree per task. Persists the #37 launch record
+  (`state.json`) before intake so forensics survive a mid-start crash.
 - `services/envelope-gate.service.ts` — diff vs blast-radius envelope,
   shadow-mode verdict (T-02).
 - `services/pr-lifecycle.service.ts` — P3 T-02: push the task branch,

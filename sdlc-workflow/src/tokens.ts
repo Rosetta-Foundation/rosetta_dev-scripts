@@ -39,5 +39,6 @@ export const WORKFLOW_TOKENS = {
   HeartbeatService: Symbol.for('HeartbeatService'),
   HeartbeatWatchService: Symbol.for('HeartbeatWatchService'),
   ProcessDetachRepository: Symbol.for('ProcessDetachRepository'),
+  SuperviseExitRepository: Symbol.for('SuperviseExitRepository'),
   SuperviseService: Symbol.for('SuperviseService')
 } as const;

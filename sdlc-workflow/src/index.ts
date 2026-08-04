@@ -134,6 +134,10 @@ import {
   IIssueRepository
 } from './repositories/issue.repository';
 import {
+  SuperviseExitRepository,
+  ISuperviseExitRepository
+} from './repositories/supervise-exit.repository';
+import {
   WakeInboxRepository,
   IWakeInboxRepository
 } from './repositories/wake-inbox.repository';
@@ -144,6 +148,7 @@ import {
 import { WORKFLOW_TOKENS } from './tokens';
 import { WorkflowError } from './types';
 import { resolveInferenceBackend } from './utils/backend-select';
+import { runExitCode } from './utils/run-exit';
 
 const container = new Container();
 const modelBinding = container.bind<IModelRepository>(
@@ -259,6 +264,12 @@ container
 container
   .bind<IProcessDetachRepository>(WORKFLOW_TOKENS.ProcessDetachRepository)
   .to(ProcessDetachRepository);
+container
+  .bind<ISuperviseExitRepository>(WORKFLOW_TOKENS.SuperviseExitRepository)
+  .to(SuperviseExitRepository);
+container
+  .bind<IWakeInboxRepository>(WORKFLOW_TOKENS.WakeInboxRepository)
+  .to(WakeInboxRepository);
 container.bind<IRunHandler>(WORKFLOW_TOKENS.RunHandler).to(RunHandler);
 container
   .bind<ISuperviseService>(WORKFLOW_TOKENS.SuperviseService)
@@ -473,20 +484,16 @@ yargs(hideBin(process.argv))
           detach: argv.detach === true,
           maxWaves: argv['max-waves'],
           monitorPath: argv.monitor,
-          operator
+          operator,
+          launchArgv: process.argv
         });
         if (result.kind === 'detached') {
           process.exit(0);
         }
-        if (result.kind === 'failed') {
+        // Refused intake, blocked wave, or task failure all exit non-zero
+        // (#37 / fail-loud T-01) — mapping lives in utils for testability.
+        if (runExitCode(result) !== 0) {
           process.exit(1);
-        }
-        const last = result.lastWave;
-        if (last !== undefined) {
-          const anyFailed = last.tasks.some(task => task.kind === 'failed');
-          if (last.outcome === 'blocked' || anyFailed) {
-            process.exit(1);
-          }
         }
       } catch (err) {
         if (err instanceof WorkflowError) {
