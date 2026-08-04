@@ -14,6 +14,7 @@ import {
   IEscalationService,
   escalationTitle
 } from '../services/escalation.service';
+import { WorkflowError } from '../types';
 import { WORKFLOW_TOKENS } from '../tokens';
 import { ExceptionEntry } from '../types';
 
@@ -210,8 +211,12 @@ describe('EscalationService (P3 T-06 + fail-loud T-04)', () => {
   });
 
   it('a failed GitHub issue post appends a visible monitor.log warning while the run continues', () => {
+    // Real IssueRepository shape: the gh stderr lives in WorkflowError
+    // details, not the message — the loud line must surface both.
     createIssue.mockImplementation(() => {
-      throw new Error('gh issue create failed: HTTP 403');
+      throw new WorkflowError('gh issue failed', 'GH_FAILED', [
+        'HTTP 403: Resource not accessible by integration'
+      ]);
     });
 
     const outcome = service.post({

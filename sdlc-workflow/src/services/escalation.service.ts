@@ -5,7 +5,7 @@ import type { IIssueRepository } from '../repositories/issue.repository';
 import type { IQueueRepository } from '../repositories/queue.repository';
 import type { IWakeInboxRepository } from '../repositories/wake-inbox.repository';
 import { WORKFLOW_TOKENS } from '../tokens';
-import { ExceptionEntry } from '../types';
+import { ExceptionEntry, WorkflowError } from '../types';
 import { evidenceLink } from './digest.service';
 
 export interface EscalateInput {
@@ -203,7 +203,14 @@ export class EscalationService implements IEscalationService {
       });
       return { created: true, url: ref.url };
     } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
+      // WorkflowError buries the gh stderr in `details` (message is just
+      // "gh issue failed") — join both or the loud line hides the cause.
+      const detail =
+        err instanceof WorkflowError
+          ? [err.message, ...err.details].join(': ')
+          : err instanceof Error
+            ? err.message
+            : String(err);
       appendMonitor(
         input.monitorPath,
         `[escalate] WARNING: failed to post needs-human GitHub issue for ${title}: ${detail.slice(0, 500)}`
