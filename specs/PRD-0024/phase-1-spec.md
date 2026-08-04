@@ -2,7 +2,7 @@
 id: SPEC-PRD-0024-P1
 prd: PRD-0024
 phase: 1
-status: Draft # Draft | Approved | Done | Superseded
+status: Approved # Draft | Approved | Done | Superseded
 date: 2026-08-04
 owner: Russ Watson
 envelope:
