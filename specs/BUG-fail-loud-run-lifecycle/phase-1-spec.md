@@ -170,6 +170,6 @@ loud line to `monitor.log`.
 - The sandbox health-check diffing `HEAD` instead of `SDLC_SANDBOX_SHA` —
   consumer-repo script defect (`comita_admissions`), tracked with the W6
   delivery-truth item.
-- Watcher/wake-chain architecture and headless wake consumption (PRD-0018).
+- Watcher/wake-chain architecture and headless wake consumption (PRD-0020).
 - Gate retrigger paths and verdict-cache invalidation (W4 self-healing PRD).
 - Heartbeat step-context coverage through CI/sandbox waits (W6).
