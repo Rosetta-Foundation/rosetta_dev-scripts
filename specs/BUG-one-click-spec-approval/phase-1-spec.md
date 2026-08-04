@@ -15,7 +15,7 @@ envelope:
       'CHANGELOG.md'
     ]
   forbiddenSurfaces: ['personal-queue-schema']
-  maxDiffLines: 420
+  maxDiffLines: 500
   budgetK: 100
 ---
 
