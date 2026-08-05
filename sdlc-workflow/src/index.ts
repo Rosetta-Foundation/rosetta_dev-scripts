@@ -72,6 +72,10 @@ import {
   ISurfaceMapRepository
 } from './repositories/surface-map.repository';
 import {
+  ReviewChecklistRepository,
+  IReviewChecklistRepository
+} from './repositories/review-checklist.repository';
+import {
   AggregatorService,
   IAggregatorService
 } from './services/aggregator.service';
@@ -106,6 +110,7 @@ import {
 } from './services/spec-synthesis.service';
 import { CiGateService, ICiGateService } from './services/ci-gate.service';
 import { DigestService, IDigestService } from './services/digest.service';
+import { RetroService, IRetroService } from './services/retro.service';
 import {
   ChronicleCommitService,
   IChronicleCommitService
@@ -198,6 +203,9 @@ container
   .bind<ISurfaceMapRepository>(WORKFLOW_TOKENS.SurfaceMapRepository)
   .to(SurfaceMapRepository);
 container
+  .bind<IReviewChecklistRepository>(WORKFLOW_TOKENS.ReviewChecklistRepository)
+  .to(ReviewChecklistRepository);
+container
   .bind<IExecutorService>(WORKFLOW_TOKENS.ExecutorService)
   .to(ExecutorService);
 container
@@ -240,6 +248,7 @@ container
   .to(CiStatusRepository);
 container.bind<ICiGateService>(WORKFLOW_TOKENS.CiGateService).to(CiGateService);
 container.bind<IDigestService>(WORKFLOW_TOKENS.DigestService).to(DigestService);
+container.bind<IRetroService>(WORKFLOW_TOKENS.RetroService).to(RetroService);
 container
   .bind<IChronicleCommitService>(WORKFLOW_TOKENS.ChronicleCommitService)
   .to(ChronicleCommitService);

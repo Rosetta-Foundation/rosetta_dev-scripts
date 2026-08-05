@@ -289,6 +289,17 @@ declares them:
 { "migrations": ["**/migrations/**"] }
 ```
 
+```markdown
+<!-- .sdlc/review-checklist.md — optional; a flat checkbox list the reviewer
+     evaluates item by item (T-01). Trailing "(mandatory)" is a hard bar: a
+     failed mandatory item overrides a concurring verdict. Absent file →
+     unchanged pre-checklist prompt/verdict shape. The engine ships no
+     content — the workspace's HSR/inline-docs bar lands here via
+     team-setup; other consumers declare their own. -->
+- [ ] Every new HSR class has TSDoc (mandatory)
+- [ ] Prefer readability over cleverness
+```
+
 A missing contract never fails the run: the corresponding gate records
 itself `blocked` (sandbox) or degrades the criteria to `human-required`
 (verification), keeping the shadow-mode phase verdict honest. The one
@@ -318,6 +329,11 @@ Audit of evaluation-time `.sdlc/` call sites and how each complies:
   `forbiddenSurfaces` declared → breach reason naming the contract path
   and the judged ref. `SurfaceMapRepository.load` (working-tree read)
   remains for synthesis-time use only; gates must not call it.
+- **Reviewer gate → `review-checklist.md`** — resolved as a git blob at
+  the gate's `headRef` via `ReviewChecklistRepository.loadAtRef` (T-01,
+  same pattern as the surface map). Missing at that ref is not an error —
+  the contract is optional, so a missing file degrades to the
+  pre-checklist prompt/verdict shape rather than blocking the run.
 - **Sandbox gate → `environments.json`** — loaded from the task
   **worktree**, which is the engine-owned checkout of the judged branch
   tip (commands must execute from a filesystem checkout). Compliant: the
@@ -362,6 +378,24 @@ Ledger commits follow ADR-0007: `chronicle(sdlc): ...` /
 trailers. Verdict artifacts carry gate identity, inputs digest, outcome,
 and resolvable evidence refs, and read back through
 `GatePolicyQueryService` so future gate policy can learn from track record.
+
+For a `SPEC-BUG-*` run, the same phase boundary also dispatches one retro
+inference call over the spec's Context section and the run's full
+verdict/exception history — "what would have caught this earlier, and
+which stage should own that check" (SPEC-BUG-retro-and-queued-plans-P1
+T-01). Recommendations commit as one `sdlc.retro.v1` artifact and link
+from a `[retro]`-tagged queue Inbox item. Idempotent across resume;
+non-`BUG-*` runs unaffected; a model failure degrades
+loud-but-nonblocking with a `[retro] WARNING` in `monitor.log`.
+
+**Verdict outcomes (BUG-reviewer-house-bar-P1 T-02):** `record-merge --task`
+and `check-veto`'s revert path each annotate the affected task's gate
+verdicts with a compact `sdlc.outcome.v1` artifact — `outcome: stood` when
+the merge holds, `outcome: vetoed` when a queue veto reverts it — one
+record per `(runId, taskId, gate)`, keyed so a resumed run overwrites
+rather than duplicates. This makes per-gate precision (how often a concur
+preceded a veto/rework, how often a breach was overridden) computable from
+the ledger; no read-side reporting ships in this task.
 
 ## Environment
 
@@ -420,7 +454,10 @@ Handler / Service / Repository with InversifyJS (workspace rule):
   (commit status context `sdlc/reviewer` + overview comment); best-effort
 - `services/reviewer-gate.service.ts` — independent reviewer agent over the
   diff + task + envelope only; concur/disagree with cited reasons and the
-  full transcript attached (T-05).
+  full transcript attached (T-05). When the target repo declares
+  `.sdlc/review-checklist.md`, the prompt includes it and the verdict
+  carries per-item `checklistFindings`; a failed `mandatory` item overrides
+  a model concur to disagree (SPEC-BUG-reviewer-house-bar-P1 T-01).
 - `services/aggregator.service.ts` — combines ci / verification / reviewer /
   envelope into one phase verdict and derives exception-ledger entries
   (reviewer disagreement, third CI fix attempt, envelope breach, budget
@@ -441,9 +478,15 @@ Handler / Service / Repository with InversifyJS (workspace rule):
 - `services/digest.service.ts` — phase-boundary digest to the PRD-0007
   personal queue; append-only. Veto is a separate `check-veto` command
   that reads the item back (T-07 / P3 T-05).
+- `services/retro.service.ts` — `SPEC-BUG-*` phase-boundary retro: one
+  inference call over the spec Context + verdict/exception history,
+  committed as `sdlc.retro.v1` and linked from a `[retro]` queue item;
+  append-only, same idempotency contract as the digest (T-01).
 - `services/chronicle-commit.service.ts` — versioned run artifacts +
   merged-SHA / veto-revert recording (`sdlc.merge.v1`, `sdlc.revert.v1`),
-  committed per ADR-0007 (T-08 / P3 T-05).
+  committed per ADR-0007 (T-08 / P3 T-05); also annotates the affected
+  tasks' gate verdicts `stood` / `vetoed` via `sdlc.outcome.v1`
+  (BUG-reviewer-house-bar-P1 T-02).
 - `services/gate-policy-query.service.ts` — reads verdict artifacts back
   for gate-policy consumption (T-08).
 - `repositories/` — PRD parsing (`prd`), model transports (`anthropic`,
@@ -453,19 +496,22 @@ Handler / Service / Repository with InversifyJS (workspace rule):
   (`spec-file`), spec reads (`spec-doc`), git worktrees/diffs (`git`),
   workspace-mutating agent runs (`agent-runner`), resumable run state with
   the step graph (`run-state`), protected-surface map (`surface-map`),
-  `.sdlc/` contracts (`contract`), contract command execution
+  the optional review checklist (`review-checklist`), `.sdlc/` contracts
+  (`contract`), contract command execution
   (`shell-command`), evidence artifacts (`evidence`), PRD-0007 queue
   appends (`queue`), Chronicle ledger artifacts + ADR-0007 commits
   (`chronicle-artifact`), GitHub check-run status (`ci-status`), and the
   `queue-run` durable launch queue — FIFO `<runsDir>/queue/<n>.json`
   records deduped by spec path (`run-queue`, T-02).
 - `utils/` — pure functions: PRD parser, JSON-schema validator, spec renderer,
-  ADR-0008 format validator, spec parser (round-trip of the renderer), spec
-  format lint (`spec-lint`, the hook/CI-safe pre-intake guard), glob
-  matcher, criterion-tier parser, inputs digest (`digest`), queued-run argv
-  construction (`queue-argv`, mirrors `supervise-argv` for the launch
-  queue), and the implementation / reviewer / verifier agent prompt
-  builders.
+  ADR-0008 format validator, spec parser (round-trip of the renderer, now
+  including the Context section), spec format lint (`spec-lint`, the
+  hook/CI-safe pre-intake guard), glob matcher, criterion-tier parser,
+  inputs digest (`digest`), a `monitor.log` line appender (`monitor`),
+  queued-run argv construction (`queue-argv`, mirrors `supervise-argv` for
+  the launch queue), the optional review-checklist markdown parser
+  (`review-checklist`), and the implementation / reviewer / verifier /
+  retro agent prompt builders.
 
 ## Testing
 

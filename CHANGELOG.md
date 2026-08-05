@@ -14,6 +14,23 @@
   raises a durable `sdlc_queue_launch` wake. `status --queue` lists queued
   entries. This is the interim consumer; the PRD-0020 daemon later owns the
   same queue via its watch registry against this unchanged record format.
+- **sdlc-workflow:** gate verdicts are now linked to their eventual outcome
+  so per-gate precision is computable from the Chronicle ledger
+  (SPEC-BUG-reviewer-house-bar-P1 T-02). `record-merge --task` annotates
+  the merged task's gate verdicts `outcome: stood`; `check-veto`'s revert
+  path annotates the reverted tasks' verdicts `outcome: vetoed`. Each
+  annotation is a compact `sdlc.outcome.v1` artifact keyed by
+  `(runId, taskId, gate)`, so a resumed run overwrites rather than
+  duplicates. Read-side reporting (e.g. a precision report) is out of
+  scope — this task only guarantees the data exists going forward.
+- **sdlc-workflow:** the reviewer prompt now injects the target repo's
+  optional `.sdlc/review-checklist.md` (SPEC-BUG-reviewer-house-bar-P1
+  T-01), resolved from the judged tree via `ReviewChecklistRepository`
+  (T-03 tree-resolution rule). The assessment schema gains per-item
+  `checklistFindings`, and a failed `mandatory` item overrides a
+  concurring verdict to disagree. No file → unchanged pre-checklist
+  prompt/verdict shape; a malformed checklist fails loud with a named
+  `CONTRACT_MALFORMED` error. The engine ships no checklist content.
 - **ci:** `.github/workflows/ci.yml`'s `test` job now runs `bun run typecheck`
   (`tsc --noEmit`) for `team-setup` and `sdlc-workflow`, each before that
   package's `test:coverage` step (SPEC-BUG-ci-typecheck-gate-P1 T-01). Jest
@@ -321,6 +338,16 @@
   link it from `architecture-hsr`; mirror description in Cursor `.mdc` generation.
 - **sdlc-workflow:** reviewer prompt includes the documentation bar checklist so
   shadow/enforce reviews catch missing or hollow docs on new exports.
+- **sdlc-workflow:** bug-fix runs now feed their own retro back into intake
+  instead of ending at merge. For a `SPEC-BUG-*` spec, the phase boundary
+  that posts the T-07 digest also dispatches one inference call over the
+  spec's Context section and the run's verdict/exception history, asking
+  what would have caught the bug earlier and which stage should own that
+  check. Recommendations commit as one `sdlc.retro.v1` artifact and link
+  from a `[retro]`-tagged queue Inbox item. Idempotent across resume;
+  non-`BUG-*` runs unaffected; a model failure degrades
+  loud-but-nonblocking with a `[retro] WARNING` in `monitor.log`
+  (SPEC-BUG-retro-and-queued-plans-P1 T-01).
 
 ## 1.0.0
 
