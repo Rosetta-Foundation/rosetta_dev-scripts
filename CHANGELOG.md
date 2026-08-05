@@ -11,9 +11,22 @@
   launches it detached once its spec reads `Approved` on `origin/<default>`;
   an unapproved head stays queued with a visible `monitor.log` line, and a
   failed launch is never a silent drop — it stays queued for retry and
-  raises a durable `sdlc_queue_launch` wake. `status --queue` lists queued
-  entries. This is the interim consumer; the PRD-0020 daemon later owns the
-  same queue via its watch registry against this unchanged record format.
+  raises a durable `sdlc_queue_launch` wake. The relaunch replays the
+  record's own `execPath`/`execArgv` (not the enforcing process's), so a
+  queued relaunch stays correct even under a differently-invoked daemon.
+  `status --queue` lists queued entries. This is the interim consumer; the
+  PRD-0020 daemon later owns the same queue via its watch registry against
+  this unchanged record format.
+- **sdlc-workflow:** the envelope gate's `maxDiffLines` budget now excludes
+  test files (`*.test.*`, `*.spec.*`, `__tests__/**`, `__mocks__/**` —
+  `isTestPath`) from the size count; they still count for `allowedPaths` /
+  `forbiddenSurfaces`. A thorough test suite is not a bigger blast radius
+  than a thin one, and counting it the same as production code was forcing
+  a choice between under-testing and inflating envelopes (caught live on
+  SPEC-BUG-retro-and-queued-plans-P1 T-02: 1187 total lines breached a
+  600-line budget, but only 626 were non-test). The reviewer prompt's
+  envelope section states the same exemption so the LLM reviewer's
+  independent size judgment matches the mechanical gate.
 - **sdlc-workflow:** gate verdicts are now linked to their eventual outcome
   so per-gate precision is computable from the Chronicle ledger
   (SPEC-BUG-reviewer-house-bar-P1 T-02). `record-merge --task` annotates

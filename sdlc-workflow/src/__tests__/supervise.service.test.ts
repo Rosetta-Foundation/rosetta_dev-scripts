@@ -8,7 +8,10 @@ import type { IRunHandler, RunTaskResult } from '../handlers/run.handler';
 import type { ISpecDocRepository } from '../repositories/spec-doc.repository';
 import type { IRunStateRepository } from '../repositories/run-state.repository';
 import type { IProcessDetachRepository } from '../repositories/process-detach.repository';
-import type { IRunQueueRepository } from '../repositories/run-queue.repository';
+import type {
+  IRunQueueRepository,
+  QueuedLaunchRecord
+} from '../repositories/run-queue.repository';
 import type { IHeartbeatWatchService } from '../services/heartbeat-watch.service';
 import {
   SuperviseExitRepository,
@@ -557,7 +560,10 @@ describe('SuperviseService', () => {
       }
     } as unknown as RunState;
 
-    const queuedRecord = (repoPath: string, specPath: string) => ({
+    const queuedRecord = (
+      repoPath: string,
+      specPath: string
+    ): QueuedLaunchRecord => ({
       specPath,
       repoPath,
       runsDir: '',
@@ -597,6 +603,35 @@ describe('SuperviseService', () => {
       expect(queueRemove).toHaveBeenCalledWith(runsDir, 7);
       const notes = note.mock.calls.map(call => String(call[1]));
       expect(notes.some(line => line.includes('[queue] launched'))).toBe(true);
+    });
+
+    // T-02 reviewer finding: the record is the contract precisely so a
+    // relaunch replays what was captured at enqueue time, not whatever
+    // interpreter happens to be running the enforcing process right now.
+    // A record whose execPath/execArgv deliberately differ from this test
+    // process's own would have let the pre-fix code (which read
+    // process.execPath/process.execArgv directly) pass unnoticed.
+    it('spawns the queued launch with the record\'s own execPath/execArgv, not the enforcing process\'s', async () => {
+      runTask.mockResolvedValueOnce(wave('executed'));
+      load.mockReturnValueOnce(mergedBoth);
+
+      const record = queuedRecord('/queued/repo', '/queued/repo/specs/spec.md');
+      record.runsDir = runsDir;
+      record.execPath = '/opt/some-other-node/bin/node';
+      record.execArgv = ['--max-old-space-size=4096'];
+      queuePeek.mockReturnValue({ seq: 7, record });
+      readAtRef.mockReturnValue({ ...baseSpec, status: 'Approved' });
+
+      await supervise.run(input());
+
+      const queueCall = spawnDetached.mock.calls.find(call =>
+        (call[0].args as string[]).includes('/queued/repo/specs/spec.md')
+      );
+      expect(queueCall).toBeDefined();
+      expect(queueCall?.[0].command).toBe('/opt/some-other-node/bin/node');
+      expect(queueCall?.[0].args.slice(0, 1)).toEqual([
+        '--max-old-space-size=4096'
+      ]);
     });
 
     it('leaves the head queued record queued, with a visible monitor line, when its spec is not Approved', async () => {

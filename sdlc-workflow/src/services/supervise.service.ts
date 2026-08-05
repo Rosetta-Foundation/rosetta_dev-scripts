@@ -565,9 +565,15 @@ export class SuperviseService implements ISuperviseService {
     const monitorPath = path.join(runDir, 'monitor.log');
 
     const childArgv = buildSuperviseChildArgv(record.argv);
+    // Replay the record's captured interpreter, not this (enforcing)
+    // process's own — the record is the contract precisely so a relaunch
+    // long after enqueue, or from a differently-invoked daemon, still runs
+    // under the Node binary/flags the operator actually queued (T-02
+    // reviewer finding: using process.execPath/execArgv here silently
+    // discarded the persisted fields).
     const { pid } = this._detachRepo.spawnDetached({
-      command: process.execPath,
-      args: [...process.execArgv, ...childArgv],
+      command: record.execPath,
+      args: [...record.execArgv, ...childArgv],
       cwd: record.cwd,
       logPath,
       env: {
