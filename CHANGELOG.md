@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **sdlc-workflow:** `queue-run --spec <path> --repo <path> …` writes a
+  durable FIFO launch record (`<runsDir>/queue/<n>.json`, deduped by spec
+  path) capturing the same argv surface as the continuity daemon's
+  `launch.json` (SPEC-BUG-retro-and-queued-plans-P1 T-02). When a supervised
+  enforce run completes with every task merged, the supervise loop pops the
+  queue head and — the same relaunch mechanics `--detach` already uses —
+  launches it detached once its spec reads `Approved` on `origin/<default>`;
+  an unapproved head stays queued with a visible `monitor.log` line, and a
+  failed launch is never a silent drop — it stays queued for retry and
+  raises a durable `sdlc_queue_launch` wake. `status --queue` lists queued
+  entries. This is the interim consumer; the PRD-0020 daemon later owns the
+  same queue via its watch registry against this unchanged record format.
 - **ci:** `.github/workflows/ci.yml`'s `test` job now runs `bun run typecheck`
   (`tsc --noEmit`) for `team-setup` and `sdlc-workflow`, each before that
   package's `test:coverage` step (SPEC-BUG-ci-typecheck-gate-P1 T-01). Jest
