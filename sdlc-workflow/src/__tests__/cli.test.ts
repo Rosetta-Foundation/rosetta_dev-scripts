@@ -40,6 +40,7 @@ describe('CLI (T-01)', () => {
     // SPEC-PRD-0023-P1: closeout is drivable by hand for interrupted jobs and
     // for specs that landed before the machinery existed.
     expect(output).toContain('closeout');
+    expect(output).toContain('daemon');
   });
 
   // `run` shipped completely unusable: `--enforce` was declared with
