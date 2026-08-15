@@ -215,6 +215,7 @@ import {
 } from './services/watch-registry.service';
 import { WORKFLOW_TOKENS } from './tokens';
 import { WorkflowError } from './types';
+import { parseDropMode } from './utils/drop-id';
 import { resolveInferenceBackend } from './utils/backend-select';
 import { runExitCode } from './utils/run-exit';
 import { lintSpec } from './utils/spec-lint';
@@ -721,7 +722,7 @@ yargs(hideBin(process.argv))
           repoPath: argv.repo,
           dropsDir: argv['drops-dir'],
           baseRef: argv['base-ref'],
-          mode: argv.mode,
+          mode: parseDropMode(argv.mode),
           requireApprove: argv['require-approve'],
           finish: argv.finish
         });

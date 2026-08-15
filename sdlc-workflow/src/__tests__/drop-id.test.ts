@@ -1,6 +1,7 @@
 import { WorkflowError } from '../types';
 import {
   dropBranchName,
+  parseDropMode,
   parseIssueRef,
   sanitizeDropId
 } from '../utils/drop-id';
@@ -20,6 +21,8 @@ describe('drop-id', () => {
       number: 57,
       slug: 'Rosetta-Foundation/rosetta_docs#57'
     });
+    expect(parseDropMode('direct')).toBe('direct');
+    expect(() => parseDropMode('shadow')).toThrow(WorkflowError);
     expect(() => parseIssueRef('not-an-issue')).toThrow(WorkflowError);
     try {
       parseIssueRef('not-an-issue');

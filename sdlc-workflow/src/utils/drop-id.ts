@@ -1,4 +1,19 @@
-import { WorkflowError } from '../types';
+import { DropMode, WorkflowError } from '../types';
+
+const DROP_MODES: readonly DropMode[] = [
+  'direct',
+  'bug-spec',
+  'plan-artifact'
+];
+
+export const parseDropMode = (raw: string): DropMode => {
+  if ((DROP_MODES as readonly string[]).includes(raw)) {
+    return raw as DropMode;
+  }
+  throw new WorkflowError(`invalid drop mode: "${raw}"`, 'DROP_INVALID', [
+    'expected direct | bug-spec | plan-artifact'
+  ]);
+};
 
 const ISSUE_REF = /^([^/\s]+)\/([^#\s]+)#(\d+)$/;
 
