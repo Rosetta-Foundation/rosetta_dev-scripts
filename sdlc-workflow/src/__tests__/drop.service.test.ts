@@ -156,4 +156,116 @@ describe('DropService', () => {
       /direct drops only/
     );
   });
+
+  it('refuses an empty issue list and --require-approve merge', () => {
+    expect(() =>
+      service.arm({ ...baseInput(dropsDir), issues: [] })
+    ).toThrow(/at least one issue ref/);
+    service.arm({ ...baseInput(dropsDir), requireApprove: true });
+    service.openPr(dropsDir, '2026-08-15');
+    expect(() => service.mergeDirect(dropsDir, '2026-08-15')).toThrow(
+      /require-approve/
+    );
+  });
+
+  it('refuses merge without a PR and is idempotent after a merge SHA', () => {
+    service.arm(baseInput(dropsDir));
+    expect(() => service.mergeDirect(dropsDir, '2026-08-15')).toThrow(
+      /no PR to merge/
+    );
+    service.openPr(dropsDir, '2026-08-15');
+    const first = service.mergeDirect(dropsDir, '2026-08-15');
+    const second = service.mergeDirect(dropsDir, '2026-08-15');
+    expect(second.mergedSha).toBe(first.mergedSha);
+    expect(merge).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores an optional envelope and uses the default task checkbox line', () => {
+    const withEnvelope = service.arm({
+      ...baseInput(dropsDir),
+      envelope: {
+        allowedPaths: ['src/**'],
+        forbiddenSurfaces: [],
+        maxDiffLines: 80,
+        budgetK: 100
+      }
+    });
+    expect(withEnvelope.envelope?.maxDiffLines).toBe(80);
+    service.openPr(dropsDir, '2026-08-15');
+    expect(create.mock.calls[0][1].body).toContain(
+      'commits on this branch are the drop tasks'
+    );
+  });
+
+  it('rethrows a merge failure that is not a human-review block', () => {
+    merge.mockImplementation(() => {
+      throw new WorkflowError('gh merge failed', 'GH_FAILED', [
+        'merge conflict in src/a.ts'
+      ]);
+    });
+    service.arm(baseInput(dropsDir));
+    service.openPr(dropsDir, '2026-08-15');
+    expect(() => service.mergeDirect(dropsDir, '2026-08-15')).toThrow(
+      /gh merge failed/
+    );
+  });
+
+  it('rethrows a non-DROP_INVALID load error from tryLoad', () => {
+    const container = new Container();
+    container
+      .bind<IGitRepository>(WORKFLOW_TOKENS.GitRepository)
+      .toConstantValue({
+        addWorktree,
+        resolveSha,
+        push,
+        diffStat: jest.fn(),
+        diffText: jest.fn(),
+        headSha: jest.fn(),
+        status: jest.fn(),
+        fetch: jest.fn(),
+        treeSha: jest.fn(),
+        worktreeForBranch: jest.fn(),
+        refExists: jest.fn(),
+        defaultBranch: jest.fn(),
+        fileAtRef: jest.fn(),
+        pathDiffersFromRef: jest.fn(),
+        revertMerge: jest.fn(),
+        stageAll: jest.fn(),
+        commit: jest.fn(),
+        listFiles: jest.fn(),
+        removeWorktreeAsync: jest.fn()
+      });
+    container
+      .bind<IPullRequestRepository>(WORKFLOW_TOKENS.PullRequestRepository)
+      .toConstantValue({
+        findByBranch,
+        latestForBranch: jest.fn(),
+        create,
+        merge,
+        mergeCommitOid: jest.fn(),
+        comment: jest.fn(),
+        updateBody: jest.fn()
+      });
+    container.bind(WORKFLOW_TOKENS.DropStateRepository).toConstantValue({
+      write: jest.fn(),
+      load: jest.fn(() => {
+        throw new WorkflowError('disk exploded', 'GIT_FAILED');
+      }),
+      pathFor: jest.fn()
+    });
+    container.bind<IDropService>(WORKFLOW_TOKENS.DropService).to(DropService);
+    const exploding = container.get<IDropService>(WORKFLOW_TOKENS.DropService);
+    expect(() => exploding.arm(baseInput(dropsDir))).toThrow(/disk exploded/);
+  });
+
+  it('stringifies a non-WorkflowError merge throw', () => {
+    merge.mockImplementation(() => {
+      throw new Error('review required by CODEOWNERS');
+    });
+    service.arm(baseInput(dropsDir));
+    service.openPr(dropsDir, '2026-08-15');
+    expect(() => service.mergeDirect(dropsDir, '2026-08-15')).toThrow(
+      /branch protection still requires a human review/
+    );
+  });
 });
