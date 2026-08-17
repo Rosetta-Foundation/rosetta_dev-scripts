@@ -105,6 +105,21 @@ The full ruleset lives in `.claude/rules/architecture-hsr.md` (Claude Code) and 
 
 Read the architecture rule before writing or reviewing any TypeScript.
 
+## Documentation sync
+
+Treat documentation drift as an engineering problem — the same class as test
+drift. The documented model, implemented model, and accepted architectural
+model should agree. Do not present unimplemented capabilities as complete, and
+do not imply that source records are Activity.
+
+Standing order: `.claude/rules/documentation-sync.md` (mirrored to
+`.cursor/rules/documentation-sync.mdc`). Canonical text:
+`rosetta_dev-scripts/team-setup/docs/documentation-sync.md`. Engine-local copy:
+`rosetta_chronicle/docs/documentation-sync.md`.
+
+PRs that change behavior, architecture, CLI, schema, source support, or
+privacy boundaries must update documentation in the same change.
+
 ## Git Workflow
 
 ### Starting work

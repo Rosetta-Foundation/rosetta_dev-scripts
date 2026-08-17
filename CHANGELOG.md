@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **team-setup:** standing **documentation-sync** rule — treat documentation
+  drift as an engineering problem. Canonical text in
+  `team-setup/docs/documentation-sync.md`; mirrored to agents via
+  `.claude/rules/documentation-sync.md`.
 - **team-setup (PRD-0026):** drop is the default grain for inbox / direct
   work — `sdlc-drop` skill + `/sdlc-drop`. `run` / `decompose` stay the
   spec-task opt-in. Foundation `main` requires status checks only, so

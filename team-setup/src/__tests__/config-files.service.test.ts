@@ -47,6 +47,7 @@ describe('layDownRootConfig', () => {
           'architecture-hsr.md',
           'code-style.md',
           'inline-docs.md',
+          'documentation-sync.md',
           'sdlc-drop.md',
           'sdlc-run-supervise.md',
           'pr-approve-watch.md'
@@ -84,6 +85,10 @@ describe('layDownRootConfig', () => {
     expect(mockWriteFileSync).toHaveBeenCalledWith(
       path.join('/base', '.cursor', 'rules', 'inline-docs.mdc'),
       expect.stringContaining('TSDoc / JSDoc bar')
+    );
+    expect(mockWriteFileSync).toHaveBeenCalledWith(
+      path.join('/base', '.cursor', 'rules', 'documentation-sync.mdc'),
+      expect.stringContaining('documentation drift as an engineering problem')
     );
     expect(mockWriteFileSync).toHaveBeenCalledWith(
       path.join('/base', '.cursor', 'rules', 'sdlc-drop.mdc'),
