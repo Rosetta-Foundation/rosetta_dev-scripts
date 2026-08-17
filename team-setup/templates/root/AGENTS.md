@@ -43,6 +43,9 @@ AI assistance. Git hooks and Conventional Commits apply regardless of agent.
   (foundation bootstrap or emergency hotfix — see `CLAUDE.md`).
 - **Inbox / direct work is a drop** — see `sdlc-drop` (`/sdlc-drop`): one
   worktree + one PR. `run` / `decompose` stay the spec-task opt-in.
+- **Documentation stays synchronized with the engine** — see
+  `documentation-sync` (`.claude/rules/documentation-sync.md`). Drift is an
+  engineering problem, same class as test drift.
 - Conventional Commits are enforced by husky `commit-msg` in every Rosetta repo.
 - **No “Made with Cursor” (or similar) in commits or PR descriptions** — see
   `.claude/rules/no-tool-attribution.md` / `.cursor/rules/no-tool-attribution.mdc`.
