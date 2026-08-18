@@ -24,6 +24,8 @@ Live-val: PRD-0026. Engine: `sdlc-workflow drop`.
 
 - A GitHub issue (or a small set) that should land as **one PR**
 - Direct, bug-spec, or plan-artifact grain — still one PR
+- A same-sitting **bundle** of cataloged issues (work-intake) — still
+  one PR; do not write a PRD for it
 - Parallel ships from the same tip: **two drop ids → two worktrees**
 
 ## When not to use

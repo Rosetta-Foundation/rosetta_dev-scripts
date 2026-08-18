@@ -26,21 +26,28 @@ same heuristics):
 | ------ | -------- |
 | Label | `verify-live` or `live-verify` |
 | Paths | `accounts-frontend`, `AccountsAuthRedirect`, `accounts-redirect`, `return-to`, `session-expiry`, `deploy-organization.yml`, `frontend-accounts-stack`, `frontend-app.ts` |
-| Title/body | `redirect_uri`, logout, cookie, SSO, Phase 0e, cutover, post-login, `accounts.dev` / `admit.dev` |
+| Title/body | `redirect_uri`, logout, cookie, SSO, Phase 0e, cutover, post-login, sandbox host names |
 
 When unsure, arm anyway and/or add the `verify-live` label.
 
 ## Hard rules
 
 1. After opening or pushing to a live-verify PR (or when the user asks), start
-   `.cursor/skills/deploy-verify-watch/scripts/watch-deploy-verify.sh` in the **background** with agent
+   `.claude/skills/deploy-verify-watch/scripts/watch-deploy-verify.sh` in the **background** with agent
    `notify_on_output` on `^AGENT_LOOP_WAKE_deploy_verify`.
 2. Do **not** redirect watcher stdout away from the monitored terminal.
 3. Prefer `--dispatch-on-arm` (or default `--auto-dispatch`) so the **current**
    head gets a deploy without waiting for another push.
 4. On `deploy_green`: tell the human the SHA/environment is ready to re-smoke;
    do **not** merge on green alone — Approve remains the merge proceed signal
-   (`pr-approve-watch`).
+   (`pr-approve-watch`). If the operator **directly linked a Slack
+   message/thread** when requesting the work (issue Source permalink, or
+   the cataloging chat), reply **in that same thread** that a new update
+   for the issue has been deployed to **SB** (sandbox — the DEV hosts;
+   do not say “dev” to stakeholders). No `@channel`. No regulated or
+   sensitive data. Include the issue URL and host. Do this in addition
+   to Cursor chat and Slack **Sandbox verify** publish. Do **not** reply
+   on git push or CI green.
 5. On `deploy_failed`: remediate (logs → fix → push). The watcher re-dispatches
    on the new SHA.
 6. After any fix that invalidates a prior smoke, **do not wait for chat** —
@@ -51,7 +58,7 @@ When unsure, arm anyway and/or add the `verify-live` label.
 
 ```bash
 # From workspace root (paths work after team-setup update-config)
-bash .cursor/skills/deploy-verify-watch/scripts/watch-deploy-verify.sh \
+bash .claude/skills/deploy-verify-watch/scripts/watch-deploy-verify.sh \
   --interval 30 \
   --activate ~/.config/rosetta/github-app-activate.sh \
   --workflow "Deploy Organization" \
@@ -65,7 +72,7 @@ bash .cursor/skills/deploy-verify-watch/scripts/watch-deploy-verify.sh \
 Classify only:
 
 ```bash
-bash .cursor/skills/deploy-verify-watch/scripts/watch-deploy-verify.sh \
+bash .claude/skills/deploy-verify-watch/scripts/watch-deploy-verify.sh \
   --classify Rosetta-Foundation/rosetta_dev-scripts#1
 # exit 0 = needs live verify
 ```
@@ -82,15 +89,24 @@ consumer workspace.
 3. Act by reason:
    - `kickoff` / `deploy_dispatched` / `head_pushed`: wait for deploy outcome
      unless remediation is already needed; do not ping the human to smoke yet.
-   - `deploy_green`: notify human — re-smoke on the live hosts for this SHA;
-     link the Actions run. Keep `pr-approve-watch` armed for Approve.
+   - `deploy_green`: notify human — re-smoke on the live **SB** (sandbox)
+     hosts for this SHA; link the Actions run. Keep `pr-approve-watch`
+     armed for Approve. If this SHA addresses an issue/item the operator
+     **linked in Slack**, `chat.postMessage` on that thread: a new update
+     for {issue} has been deployed to SB. No `@channel`. One reply per
+     originating thread (several issues → several threads).
    - `deploy_failed`: `gh run view <id> --log-failed`, fix, commit, push.
    - `pr_merged` / `pr_closed`: brief report; drop this target.
 4. Never treat deploy green as permission to merge.
 
 ## Anti-patterns
 
-- Assuming PR Checks = deployed to `admit.dev` / `accounts.dev`.
+- Assuming PR Checks = deployed to the live sandbox hosts.
 - Waiting for the human to ask "is it redeployed?" after you pushed a fix.
 - Merging on deploy green without Approve + review-comment triage.
 - Swallowing wake sentinels by redirecting watcher stdout.
+- Skipping the originating Slack thread when the operator linked it as
+  the ask — Cursor chat alone is not enough for those items.
+- Saying “deployed to dev” in Slack; stakeholders call DEV **SB** /
+  **Sandbox**. Slack **Sandbox verify** is the smoke list — do not mix
+  that `@channel` publish with a thread reply.

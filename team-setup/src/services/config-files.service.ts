@@ -59,7 +59,11 @@ const mirrorClaudeRulesToCursor = (
                         ? 'Default: live-verify PRs auto-dispatch deploy on push; re-smoke before Approve'
                         : stem === 'addi-authorship'
                           ? 'Mandatory: open PRs and issues as Addi (GitHub App), never as the human gh user'
-                          : `Rosetta rule: ${stem}`;
+                          : stem === 'work-intake'
+                            ? 'Issues are the ledger; PRD vs ADR; stakeholder verify is not GitHub Approve'
+                            : stem === 'stakeholder-verify-watch'
+                              ? 'Default: publish sandbox verify to the stakeholder ledger (do not poll from a laptop)'
+                              : `Rosetta rule: ${stem}`;
       const contents = [
         '---',
         `description: ${yamlDoubleQuoted(description)}`,

@@ -61,6 +61,23 @@ default branch after GHA merges. Otherwise merge as Addi, then pull. Do **not**
 treat chat "approved" as the proceed signal. Slash: `/watch-pr-approve`. See
 `rosetta_dev-scripts/team-setup/docs/addi-pr-automation-standard.md`.
 
+## Work intake and stakeholder verify
+
+Intake (transcripts, Slack, a domain inbox, prompts) is **not** the
+backlog — promote it. GitHub Issues are the engineering ledger
+(`direct` / `bug-spec` / `plan`). PRDs are the product contract; ADRs
+are decisions that must still bind in a year. A same-sitting **bundle**
+is one drop — do not write a PRD for it. User-facing sandbox drops
+write dated `docs/releases/` (**Delivered** / **Not verified** /
+**Verified**) and upsert the same smoke lines to Slack **Sandbox
+verify**. Stakeholders who do not use GitHub check Verified or Failed
+there. Slack is the live ledger — do not poll it from a laptop; do not
+relay check-offs. Slash: `/watch-stakeholder-verify` (publish only).
+DEV hosts are **SB / Sandbox** with stakeholders. When the operator
+linked a Slack thread as the ask, reply **in that thread** after the
+fix is deployed to SB — not on push or CI. Policy:
+[`rosetta_docs/architecture/sdlc/work-intake-and-ship-verify.md`](https://github.com/Rosetta-Foundation/rosetta_docs/blob/main/architecture/sdlc/work-intake-and-ship-verify.md).
+
 ## Package Manager
 
 Always use `bun` over `npm`/`yarn` (`bun install`, `bun run <script>`).

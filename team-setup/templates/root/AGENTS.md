@@ -16,8 +16,8 @@ truth for workflow, git conventions, and architecture pointers.
 | Project brief        | `CLAUDE.md`                                                                                                                                       | `CLAUDE.md` + this `AGENTS.md`                                                         |
 | Architecture / style | `.claude/rules/`                                                                                                                                  | `.cursor/rules/*.mdc` (mirrored on setup)                                              |
 | Permissions          | `.claude/settings.json`                                                                                                                           | `.cursor/cli.json`                                                                     |
-| Slash-style prompts  | `.claude/commands/` (`/review`, `/add-repo`, `/sdlc-status`, `/prd-portfolio`, `/sdlc-drop`, `/sdlc-run`, `/watch-pr-approve`, `/write-prd`, `/write-bug-spec`) | Matching `.cursor/rules/command-*.mdc` — ask the agent to follow them                  |
-| Agent skills         | `.claude/skills/`                                                                                                                                 | `.cursor/skills/` (e.g. `sdlc-drop`, `pr-approve-watch`, `sdlc-run-supervise`, `sdlc-prd-progress`) |
+| Slash-style prompts  | `.claude/commands/` (`/review`, `/add-repo`, `/sdlc-status`, `/prd-portfolio`, `/sdlc-drop`, `/sdlc-run`, `/watch-pr-approve`, `/watch-stakeholder-verify`, `/write-prd`, `/write-bug-spec`) | Matching `.cursor/rules/command-*.mdc` — ask the agent to follow them                  |
+| Agent skills         | `.claude/skills/`                                                                                                                                 | `.cursor/skills/` (e.g. `sdlc-drop`, `pr-approve-watch`, `sdlc-run-supervise`, `stakeholder-verify-watch`) |
 
 ## Quick start
 
@@ -61,3 +61,9 @@ AI assistance. Git hooks and Conventional Commits apply regardless of agent.
 - **Human PR feedback on the PR** — arm `pr-approve-watch` for Approve **and**
   Request changes (`/watch-pr-approve`); prefer GitHub reviews over chat for
   in-flight agent work.
+- **Catalog intake; ship same-sitting work as a bundle** — see `work-intake`
+  (`/watch-stakeholder-verify` after a sandbox deploy). Issues are the
+  ledger. Do not PRD a same-day bundle. Stakeholder smoke lives on Slack
+  **Sandbox verify** (publish only; do not poll from a laptop). Slack
+  Verified is not GitHub Approve. DEV is **SB**. Operator-linked Slack
+  threads get an SB-deploy reply on that thread.
