@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **team-setup:** work-intake + ship-bundle verify — catalog raw asks to
+  GitHub Issues (`direct` / `bug-spec` / `plan`); a same-sitting
+  **bundle** is one drop (do not PRD it); dated `docs/releases/` plus
+  Slack Sandbox verify publish (`VERIFY_*` env, no laptop poller).
+  Slack-linked asks get a thread reply on `deploy_green` (SB, not
+  “dev”). Policy:
+  `rosetta_docs/architecture/sdlc/work-intake-and-ship-verify.md`.
 - **team-setup:** standing **documentation-sync** rule — treat documentation
   drift as an engineering problem. Canonical text in
   `team-setup/docs/documentation-sync.md`; mirrored to agents via

@@ -2,6 +2,9 @@ node_modules
 coverage
 dist
 .DS_Store
+__pycache__/
+*.py[cod]
+
 # Ignore local IDE state at the repo root only — templates may ship `.cursor/`.
 /.cursor/
 /.vscode/
