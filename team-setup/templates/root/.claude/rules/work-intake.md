@@ -20,7 +20,7 @@ Full procedure:
 | **Bug spec** | Same run machine, no PRD | Non-trivial bug |
 | **`docs/releases/`** | Delivered + verify list | Every user-facing sandbox drop |
 | **Slack Sandbox verify** | Stakeholder check-off | They may have no GitHub. Do not relay. |
-| Chronicle | Why, after the fact | Not a backlog |
+| Chronicle | Why we did it and how we got here | Observational memory — not a backlog or work ledger |
 
 Issue routes: `direct` (drop + PR) · `bug-spec` · `plan` (PRD first).
 Do not `decompose` until the PRD is Accepted. Do not PRD a same-day

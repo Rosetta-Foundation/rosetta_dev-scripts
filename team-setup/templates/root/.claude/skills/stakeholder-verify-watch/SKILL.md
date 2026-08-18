@@ -9,11 +9,12 @@ description: >-
 
 # Stakeholder verify (Slack)
 
-**Stakeholders may not have GitHub.** Chronicle is engineering memory;
-the analog is the Slack **Sandbox verify** list. They check **Verified**
-or **Failed** there. Slack Status is the live check-off. Git
-`docs/releases/` is written at **publish** and snapshotted again at
-**promote**. Do **not** arm a laptop Slack poller.
+**Stakeholders may not have GitHub.** In this SDLC context, Chronicle
+preserves the path of work and decisions; it is not the stakeholder
+verification ledger. The analog is the Slack **Sandbox verify** list.
+They check **Verified** or **Failed** there. Slack Status is the live
+check-off. Git `docs/releases/` is written at **publish** and
+snapshotted again at **promote**. Do **not** arm a laptop Slack poller.
 
 Do **not** use a **Feedback** tracker for this — that list is an inbox
 of asks, not a smoke ledger. Operator-linked Slack threads get a
