@@ -9,3 +9,5 @@ __pycache__/
 /.cursor/
 /.vscode/
 team-setup/src/config/local.json
+.env
+*.env.*
