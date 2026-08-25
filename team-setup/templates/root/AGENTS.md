@@ -9,6 +9,10 @@ Read [`CLAUDE.md`](./CLAUDE.md) first. Cursor Agent and the Cursor CLI load
 `CLAUDE.md` automatically; Claude Code does too. Keep that file as the source of
 truth for workflow, git conventions, and architecture pointers.
 
+For Chronicle implementation, also read
+`rosetta_docs/process/chronicle-build-charter.md` and continue from the private
+current-state checkpoint (path in that charter).
+
 ## Tool-specific layout
 
 | Concern              | Claude Code                                                                                                                                       | Cursor Agent / CLI                                                                     |

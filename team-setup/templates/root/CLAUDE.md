@@ -24,6 +24,13 @@ manifesto, principles, glossary, and settled decisions. Read it before making
 architectural or product decisions. When implementation and philosophy
 conflict, philosophy wins.
 
+## Chronicle Build Charter
+
+When implementing Chronicle (engine, source graph, vault, specimens), read
+`rosetta_docs/process/chronicle-build-charter.md` and the private current-state
+checkpoint named there. Work inside GREEN. Stop at YELLOW/RED. Do not invent
+ontology because a prompt named it.
+
 ## SDLC drops (default for inbox work)
 
 When the ask is a GitHub issue (or a small set) that should land as **one PR**:
