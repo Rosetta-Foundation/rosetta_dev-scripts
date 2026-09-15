@@ -5,7 +5,10 @@ import {
   installCursorChronicleHooks,
   buildChronicleEngine,
   seedPersonalRepoFiles,
-  provisionPersonalChronicle
+  provisionPersonalChronicle,
+  parseSharedChronicleEnv,
+  isChronicleGitCheckout,
+  readExistingSharedLedger
 } from '../services/personal-chronicle.service';
 
 jest.mock('child_process', () => ({ execSync: jest.fn() }));
@@ -13,17 +16,28 @@ jest.mock('fs', () => ({
   existsSync: jest.fn(),
   readFileSync: jest.fn(),
   writeFileSync: jest.fn(),
-  mkdirSync: jest.fn()
+  mkdirSync: jest.fn(),
+  symlinkSync: jest.fn(),
+  realpathSync: jest.fn((p: string) => p)
 }));
 
 import { execSync } from 'child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  symlinkSync,
+  realpathSync
+} from 'fs';
 
 const mockExecSync = execSync as jest.Mock;
 const mockExistsSync = existsSync as jest.Mock;
 const mockReadFileSync = readFileSync as jest.Mock;
 const mockWriteFileSync = writeFileSync as jest.Mock;
 const mockMkdirSync = mkdirSync as jest.Mock;
+const mockSymlinkSync = symlinkSync as jest.Mock;
+const mockRealpathSync = realpathSync as unknown as jest.Mock;
 
 const config = {
   namePrefix: 'rosetta_chronicle',
@@ -40,6 +54,7 @@ beforeEach(() => {
   mockExistsSync.mockReturnValue(false);
   mockReadFileSync.mockReturnValue('{}');
   mockWriteFileSync.mockImplementation(() => {});
+  mockRealpathSync.mockImplementation((p: string) => p);
 });
 
 afterEach(() => (console.log as jest.Mock).mockRestore());
@@ -55,6 +70,56 @@ describe('derivePersonalRepoName', () => {
     expect(derivePersonalRepoName('rosetta_chronicle', 'org/user')).toBe(
       'rosetta_chronicle_org_user'
     );
+  });
+});
+
+describe('parseSharedChronicleEnv', () => {
+  it('reads double-quoted exports', () => {
+    expect(
+      parseSharedChronicleEnv(
+        'export CHRONICLE_REPO="/ledger"\nexport CHRONICLE_PROJECT="/ws"\n'
+      )
+    ).toEqual({ repo: '/ledger', project: '/ws' });
+  });
+
+  it('reads single-quoted and unquoted values', () => {
+    expect(
+      parseSharedChronicleEnv(
+        "export CHRONICLE_REPO='/ledger'\nexport CHRONICLE_PROJECT=/ws\n"
+      )
+    ).toEqual({ repo: '/ledger', project: '/ws' });
+  });
+
+  it('returns empty fields for unrelated content', () => {
+    expect(parseSharedChronicleEnv('{}\n')).toEqual({});
+  });
+});
+
+describe('isChronicleGitCheckout / readExistingSharedLedger', () => {
+  it('is true when dir/.git exists', () => {
+    mockExistsSync.mockImplementation(
+      (p: string) => String(p) === '/ledger/.git'
+    );
+    expect(isChronicleGitCheckout('/ledger')).toBe(true);
+    expect(isChronicleGitCheckout('/missing')).toBe(false);
+  });
+
+  it('returns the realpath of a live env repo', () => {
+    mockExistsSync.mockImplementation((p: string) => {
+      const s = String(p);
+      return s.endsWith('chronicle.env') || s === '/other/ledger/.git';
+    });
+    mockReadFileSync.mockReturnValue('export CHRONICLE_REPO="/other/ledger"\n');
+    mockRealpathSync.mockReturnValue('/real/ledger');
+    expect(readExistingSharedLedger()).toBe('/real/ledger');
+  });
+
+  it('returns null when the env repo is not a checkout', () => {
+    mockExistsSync.mockImplementation((p: string) =>
+      String(p).endsWith('chronicle.env')
+    );
+    mockReadFileSync.mockReturnValue('export CHRONICLE_REPO="/gone"\n');
+    expect(readExistingSharedLedger()).toBeNull();
   });
 });
 
@@ -209,6 +274,47 @@ describe('installChronicleHook', () => {
     });
     expect(() => installChronicleHook(REPO, HOOK, PROJECTS)).not.toThrow();
   });
+
+  it('does not retarget CHRONICLE_REPO when a live shared ledger already exists', () => {
+    const existing = '/other/rosetta_chronicle_example-user';
+    mockExistsSync.mockImplementation((p: string) => {
+      const s = String(p);
+      return (
+        s.endsWith('chronicle.env') ||
+        s.endsWith('settings.json') ||
+        s === `${existing}/.git`
+      );
+    });
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('chronicle.env')) {
+        return [
+          `export CHRONICLE_REPO="${existing}"`,
+          'export CHRONICLE_PROJECT="/other"',
+          ''
+        ].join('\n');
+      }
+      return JSON.stringify({
+        env: { CHRONICLE_REPO: existing, CHRONICLE_PROJECT: '/other' }
+      });
+    });
+
+    installChronicleHook(REPO, HOOK, PROJECTS);
+
+    const envCall = mockWriteFileSync.mock.calls.find((c: string[]) =>
+      String(c[0]).endsWith('chronicle.env')
+    );
+    expect(envCall?.[1]).toContain(`CHRONICLE_REPO="${existing}"`);
+    expect(envCall?.[1]).toContain(`CHRONICLE_PROJECT="${PROJECTS}"`);
+    expect(envCall?.[1]).not.toContain(`CHRONICLE_REPO="${REPO}"`);
+
+    const written = writtenJsonFor('settings.json');
+    expect((written.env as Record<string, string>)['CHRONICLE_REPO']).toBe(
+      existing
+    );
+    expect((written.env as Record<string, string>)['CHRONICLE_PROJECT']).toBe(
+      PROJECTS
+    );
+  });
 });
 
 describe('installCursorChronicleHooks', () => {
@@ -358,6 +464,93 @@ describe('provisionPersonalChronicle', () => {
     const calls = mockExecSync.mock.calls.map((c: string[]) => c[0]);
     expect(calls.some((c: string) => c.includes('gh repo create'))).toBe(false);
     expect(calls.some((c: string) => c.includes('gh repo clone'))).toBe(false);
+  });
+
+  it('symlinks to the shared ledger instead of cloning a second copy', () => {
+    const existing = '/other/rosetta_chronicle_example-user';
+    mockExecSync.mockReturnValue('example-user\n');
+    mockExistsSync.mockImplementation((p: string) => {
+      const s = String(p);
+      return s.endsWith('chronicle.env') || s === `${existing}/.git`;
+    });
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('chronicle.env')) {
+        return `export CHRONICLE_REPO="${existing}"\n`;
+      }
+      return '{}';
+    });
+
+    provisionPersonalChronicle(config, '/base', 'MyOrg');
+
+    expect(mockSymlinkSync).toHaveBeenCalledWith(
+      existing,
+      '/base/rosetta_chronicle_example-user'
+    );
+    const calls = mockExecSync.mock.calls.map((c: string[]) => c[0]);
+    expect(calls.some((c: string) => c.includes('gh repo create'))).toBe(false);
+    expect(calls.some((c: string) => c.includes('gh repo clone'))).toBe(false);
+  });
+
+  it('does not retarget hooks when this workspace already has a second checkout', () => {
+    const existing = '/other/rosetta_chronicle_example-user';
+    const local = '/base/rosetta_chronicle_example-user';
+    mockExecSync.mockReturnValue('example-user\n');
+    mockExistsSync.mockImplementation((p: string) => {
+      const s = String(p);
+      return (
+        s.endsWith('chronicle.env') ||
+        s === `${existing}/.git` ||
+        s === `${local}/.git`
+      );
+    });
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('chronicle.env')) {
+        return `export CHRONICLE_REPO="${existing}"\n`;
+      }
+      return '{}';
+    });
+    mockRealpathSync.mockImplementation((p: string) => p);
+
+    provisionPersonalChronicle(config, '/base', 'MyOrg');
+
+    expect(mockSymlinkSync).not.toHaveBeenCalled();
+    const calls = mockExecSync.mock.calls.map((c: string[]) => c[0]);
+    expect(calls.some((c: string) => c.includes('gh repo clone'))).toBe(false);
+    const envCall = mockWriteFileSync.mock.calls.find((c: string[]) =>
+      String(c[0]).endsWith('chronicle.env')
+    );
+    expect(envCall?.[1]).toContain(`CHRONICLE_REPO="${existing}"`);
+    expect(envCall?.[1]).not.toContain(`CHRONICLE_REPO="${local}"`);
+  });
+
+  it('does not replace a non-git path and still keeps the shared ledger', () => {
+    const existing = '/other/rosetta_chronicle_example-user';
+    const local = '/base/rosetta_chronicle_example-user';
+    mockExecSync.mockReturnValue('example-user\n');
+    mockExistsSync.mockImplementation((p: string) => {
+      const s = String(p);
+      return (
+        s.endsWith('chronicle.env') ||
+        s === `${existing}/.git` ||
+        s === local
+      );
+    });
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('chronicle.env')) {
+        return `export CHRONICLE_REPO="${existing}"\n`;
+      }
+      return '{}';
+    });
+
+    provisionPersonalChronicle(config, '/base', 'MyOrg');
+
+    expect(mockSymlinkSync).not.toHaveBeenCalled();
+    const calls = mockExecSync.mock.calls.map((c: string[]) => c[0]);
+    expect(calls.some((c: string) => c.includes('gh repo clone'))).toBe(false);
+    const envCall = mockWriteFileSync.mock.calls.find((c: string[]) =>
+      String(c[0]).endsWith('chronicle.env')
+    );
+    expect(envCall?.[1]).toContain(`CHRONICLE_REPO="${existing}"`);
   });
 
   it('creates a private repo under the user account (seeded with a readme) then clones it when nothing exists', () => {
