@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **HSR:** substitutability is now a first-class rule — a vendor,
+  datastore, or transport swap must be a new Repository plus a changed
+  binding. The canonical `architecture-hsr` text names that acceptance
+  test and the missing hard rules (no vendor types in exported
+  signatures, no fourth I/O layer, no static accessors, bind interfaces
+  not classes, inject config, one composition root). The reviewer prompt
+  gains an Architecture bar parallel to the Documentation bar.
 - **team-setup:** work-intake + ship-bundle verify — catalog raw asks to
   GitHub Issues (`direct` / `bug-spec` / `plan`); a same-sitting
   **bundle** is one drop (do not PRD it); dated `docs/releases/` plus
