@@ -219,7 +219,7 @@ bun run dev -- shell-alias
 ├── rosetta_docs/                (cloned — PRDs, ADRs, docs, shared assets)
 ├── rosetta_chronicle/           (cloned — memory engine)
 ├── rosetta_wayfinder/           (cloned — knowledge guide)
-└── rosetta_chronicle_<you>/     (created + cloned — your private personal Chronicle)
+└── rosetta_chronicle_<you>/     (clone, or symlink to an existing personal ledger)
 ```
 
 All workspace repos — `rosetta_dev-scripts`, `rosetta_docs`, `rosetta_chronicle`, and
@@ -243,6 +243,12 @@ sign into a free GitHub account (free accounts include unlimited private repos),
 **Legacy:** chronicles provisioned by earlier versions live under the org
 (`<org>/rosetta_chronicle_<you>`). Setup still finds and clones them, and prints the
 `gh api …/transfer` command to move ownership to your account when you're ready.
+
+`CHRONICLE_REPO` is one human ledger. A later workspace `setup` does **not** retarget it to a newly
+cloned path, and does **not** clone a second `rosetta_chronicle_<you>` when the shared env already
+points at a live checkout — that workspace gets a symlink to the existing ledger instead.
+`CHRONICLE_PROJECT` still follows the workspace being set up (hooks prefer the session cwd when they
+can).
 
 Full `setup` (not `--skip-clone`) also:
 
